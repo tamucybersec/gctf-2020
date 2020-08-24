@@ -48,6 +48,53 @@ xor: `76 58 b4 49 8d 1a 5f 38 d4 23 f8 34 eb 86 f9 aa`
 add32: `ef be ad de ad de e1 fe 37 13 37 13 66 74 63 67`
 shuffle: `02 06 07 01 05 0b 09 0e 03 0f 04 08 0a 0c 0d 00`
 
+The operations are as follows:
+
+### pshufb
+
+pshufb shuffles bytes in a 128-bit register by moving them into the location specified by the second operand.  
+
+```
+x[16];
+y[16];
+o[16];
+
+for(int i = 0; i < 16; i++) {
+  o[i] = (y[i] < 0) ? 0 : x[y[i] % 16];
+}
+```
+
+### paddd
+
+paddd performs four 32 bit additions and stores the output in that range of the output array
+
+```text
+x[128];
+y[128];
+o[128];
+
+o[0..31] = x[0..31] + y[0..31];
+o[32..63] = x[32..63] + y[32..63];
+o[64..95] = x[64..95] + y[64..95];
+o[96..127] = x[96..127] + y[96..127];
+```
+
+### pxor
+
+pxor performs a bitwise xor operation across both operands.  
+
+```text
+x[128];
+y[128];
+o[128];
+
+for(int i = 0; i < 128; i++) {
+  o[i] = x[i] ^ y[i];
+}
+```
+
+## solution
+
 ```python
 from binascii import unhexlify
 
@@ -88,4 +135,4 @@ while len(known) > 0:
 print("".join(flag))
 ```
 
-This was our solver script.  The careful observer (aka if you executed it) may notice that the flag it gives isn't correct.  The solved flag is `CTF{S1NEf0rM3!}` and the correct flag is `CTF{S1MDf0rM3!}`.  Honestly I have no idea why, we just found that the original flag wasn't correct and guessed the correct numbers from context.  
+This was our solver script.  The careful observer (aka if you executed it) may notice that the flag it gives isn't correct.  The solved flag is `CTF{S1NEf0rM3!}` and the correct flag is `CTF{S1MDf0rM3!}`.  This happened because of a misunderstanding in how the PADDD instruction worked.  I assumed a bytewise addition across the registers, but it actually performed four 32-bit additions.  Elements 6 and 7 from the add32 array have the most significant bit flipped so they required carrying that couldn't happen on bitwise addition.  
