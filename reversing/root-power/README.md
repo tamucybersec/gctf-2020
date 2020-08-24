@@ -38,9 +38,6 @@ The bootable partition starts at 2048 with block sizes of 512 so to mount it we 
 ### chroot, systemd-nspawn-ing,  QEMU + autologin
 [Addison]
 
-*This section ended up not actually helping us solve the challenge and was done concurrently with others in this
-section. If you're just looking for the solution, head to "Pacman tells all"*
-
 Google provides us with a script to launch it with QEMU, but it needs a password we don't have! We recognised that we
 would need a root shell on the device, so to do so, we employed multiple tools.
 
@@ -63,8 +60,7 @@ live investigation from here.
 
 ### Hiding in the /etc/shadow?
 
-*This section ended up not actually helping us solve the challenge and was done concurrently with others in this
-section. If you're just looking for the solution, head to "Pacman tells all"*
+[komputerwiz]
 
 The first place anyone should think to go to get root access is the "shadow file" in `/etc/shadow`. This file contains
 the hashed password of all users in a linux system. In this case, we can get the hashed root password:
