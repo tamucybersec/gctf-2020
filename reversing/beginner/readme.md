@@ -2,6 +2,8 @@
 
 _reversing, easy_
 
+[Addison], [theinen], [komputerwiz]
+
 ## initial review
 
 We're provided a single binary called a.out
@@ -136,3 +138,8 @@ print("".join(flag))
 ```
 
 This was our solver script.  The careful observer (aka if you executed it) may notice that the flag it gives isn't correct.  The solved flag is `CTF{S1NEf0rM3!}` and the correct flag is `CTF{S1MDf0rM3!}`.  This happened because of a misunderstanding in how the PADDD instruction worked.  I assumed a bytewise addition across the registers, but it actually performed four 32-bit additions.  Elements 6 and 7 from the add32 array have the most significant bit flipped so they required carrying that couldn't happen on bitwise addition.  
+
+
+[Addison]: https://github.com/VTCAKAVSMoACE
+[theinen]: https://github.com/tcheinen
+[komputerwiz]: https://github.com/komputerwiz
