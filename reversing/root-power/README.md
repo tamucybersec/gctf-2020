@@ -5,7 +5,7 @@
 Root is an incredibly powerful account to access. Especially in this National Grid VM.
 
 ## Initial review
-<super>[Addison](https://github.com/VTCAKAVSMoACE), [theinen](https://github.com/tcheinen), [komputerwiz](https://github.com/komputerwiz), [Arjun](https://github.com/alalith) </super>
+[Addison], [theinen], [komputerwiz], [Arjun]
 
 The attachment provided in the CTF provides us with a "vm.tar.xz". Extracting reveals a disk image (disk.img) and a
 script which launches a QEMU VM using the disk image.
@@ -13,9 +13,10 @@ script which launches a QEMU VM using the disk image.
 Let's take a look around that disk image.
 
 ### Mounting the image
-<super>[theinen](https://github.com/tcheinen) </super>
+[theinen]
 
-With a disk image provided to us and a task to log in as root, the obvious thing is to just mount the disk and look for interesting stuff.  If we can't log in as root we can still look for interesting files.  
+With a disk image provided to us and a task to log in as root, the obvious thing is to just mount the disk and look for
+interesting stuff.  If we can't log in as root we can still look for interesting files.  
 
 ```text
 ❯ fdisk -l disk.img
@@ -35,7 +36,7 @@ The bootable partition starts at 2048 with block sizes of 512 so to mount it we 
 `❯ sudo mount -o loop,offset=1048576 disk.img disk` will mount the partition at the "disk" folder in the same directory.  
 
 ### chroot, systemd-nspawn-ing,  QEMU + autologin
-<super>[Addison](https://github.com/VTCAKAVSMoACE) </super>
+[Addison]
 
 *This section ended up not actually helping us solve the challenge and was done concurrently with others in this
 section. If you're just looking for the solution, head to "Pacman tells all"*
@@ -62,9 +63,11 @@ live investigation from here.
 
 ### Hiding in the /etc/shadow?
 
-The first place anyone should think to go to get root access is the "shadow
-file" in `/etc/shadow`. This file contains the hashed password of all users in
-a linux system. In this case, we can get the hashed root password:
+*This section ended up not actually helping us solve the challenge and was done concurrently with others in this
+section. If you're just looking for the solution, head to "Pacman tells all"*
+
+The first place anyone should think to go to get root access is the "shadow file" in `/etc/shadow`. This file contains
+the hashed password of all users in a linux system. In this case, we can get the hashed root password:
 
 ```console
 [root@gctf-root-power ~]# head -1 /etc/shadow
@@ -77,8 +80,8 @@ Here is a dissection of that hash:
 * `$OesMIrMe` - Salt
 * `$m3dh/8JZc6k/fz9SW2PRI.` - Hash
 
-If we put the hash line into `hash.txt`, [hashcat][] makes quick work of this
-password against the [rockyou][] password list:
+If we put the hash line into `hash.txt`, [hashcat] makes quick work of this password against the [rockyou] password
+list:
 
 ```console
 sky@$ hashcat -a0 -m 500 hash.txt ~/Downloads/rockyou.txt -O 
@@ -87,9 +90,7 @@ sky@$ hashcat -a0 -m 500 hash.txt ~/Downloads/rockyou.txt -O --show
 $1$OesMIrMe$m3dh/8JZc6k/fz9SW2PrI.:no
 ```
 
-
-Turns out the hashed password is simply `no`. The feeling that this seemed a
-bit too easy is quickly justified:
+Turns out the hashed password is simply `no`. A feeling this seemed a bit too easy is quickly justified:
 
 ```
 NATIONAL POWER GRID CONTROL SERVER. ALL ACCOUNTS EXCEPT ROOT DISABLED. ADMINISTRATORS ONLY.
@@ -102,11 +103,10 @@ gctf-root-power login:
 So there is something more than just a password at play here...
 
 ### Pacman tells all
-<super>[komputerwiz](https://github.com/komputerwiz) </super>
+[komputerwiz]
 
-Once we have access to the filesystem, we can use the following script to query
-Arch's `pacman` package manager database for any files that are not owned by
-any packages:
+Once we have a login on the system, we can use the following script to query Arch's `pacman` package manager database
+for any files that are not owned by any packages:
 
 ```bash
 #!/bin/sh
@@ -127,14 +127,11 @@ find /bin /etc /lib /sbin /usr \
 comm -23 "$fs" "$db"|less
 ```
 
-(Credit to
-[graysky](https://bbs.archlinux.org/viewtopic.php?pid=1102910#p1102910) on the
-Arch Forums)
+(Credit to [graysky](https://bbs.archlinux.org/viewtopic.php?pid=1102910#p1102910) on the Arch Forums)
 
-This effectively "diffs" the filesystem against what would otherwise be a
-vanilla Arch installation. This yielded many auto-generated / user-specified
-configuration files, SSL certificates, and some particularly interesting files
-in `/usr/` toward the end:
+This effectively "diffs" the filesystem against what would otherwise be a vanilla Arch installation. This yielded many
+auto-generated / user-specified configuration files, SSL certificates, and some particularly interesting files in
+`/usr/` toward the end:
 
 ```console
 [root@gctf-root-power ~]# ./find-extra-files.sh
@@ -158,27 +155,28 @@ in `/usr/` toward the end:
 [root@gctf-root-power ~]#
 ```
 
-The `pam_check.so` module was indeed being used in `/etc/pam.d/system-auth`,
-which is probably why our attempt to log in with the root password earlier
-would not work. Let us see what is inside that PAM module and those kernel
-modules.
+The `pam_check.so` module was indeed being used in `/etc/pam.d/system-auth`, which is probably why our attempt to log in
+with the root password earlier would not work. Let's see what is inside the PAM module and those kernel modules.
 
 ## Ghidra review of kernel and PAM modules
-<super>[Addison](https://github.com/VTCAKAVSMoACE), [theinen](https://github.com/tcheinen), [Arjun](https://github.com/alalith) </super>
+[Addison], [theinen], [Arjun]
 
 ### hello.ko
-<super>[theinen](https://github.com/tcheinen) </super>
+[theinen]
 
-![init function, prints out Hello World to kernel log](./hello_ko_hello_init.png)
-![init function, prints out Goodbye World to kernel log](./hello_ko_hello_exit.png)
-![strings in memory, shows Hello World! and Goodbye World!](./hello_ko_strings.png)
+![init function, prints out Hello World to kernel log](images/hello_ko_hello_init.png)
+![init function, prints out Goodbye World to kernel log](images/hello_ko_hello_exit.png)
+![strings in memory, shows Hello World! and Goodbye World!](images/hello_ko_strings.png)
 
-This was a fairly trivial kernel module.  It printed "Hello World" and "Goodbye World" to the kernel log.  To the best of my knowledge it had nothing to do with the actual challenge but it was an extra file on the disk so we analyzed it.  
+This was a fairly trivial kernel module.  It printed "Hello World" and "Goodbye World" to the kernel log.  To the best
+of my knowledge it had nothing to do with the actual challenge but it was an extra file on the disk so we analyzed it.  
 
 ### chck.ko
-<super>[Addison](https://github.com/VTCAKAVSMoACE), [theinen](https://github.com/tcheinen), [Arjun](https://github.com/alalith) </super>
+[Addison], [theinen], [Arjun]
 
-We run strings on the kernel module, and find that the author is someone working at Google. There is also a mention of acpi in the alias:
+We run strings on the kernel module, and find that the author is someone working at Google. There is also a mention of
+acpi in the alias:
+
 ```bash
 arjun@broly:~/Playground/google_ctf/reversing/root_power/vm$ strings chck.ko
 Linux
@@ -196,33 +194,44 @@ name=chck
 ...
 ```
 
-We look at the kernel modules in ghidra, and we see that the read function calls a function `acpi_evaluate_integer`. This function is undefined in ghidra, and will likely be defined in initramfs:
-![chck_read](chck_read.png)
+We look at the kernel modules in ghidra, and we see that the read function calls a function `acpi_evaluate_integer`.
+This function is external and invokes relies on uninitialised data which is likely to be defined in initramfs:
+
+![chck_read](images/chck_read.png)
 
 ### pam_chck.so
-<super>[theinen](https://github.com/tcheinen) </super>
+[theinen]
 
-[pam_chck.so](./pam_chck.so)
+[pam_chck.so](files/pam_chck.so)
 
-![pam_chck.so functions](./pam_chck_so_functions.png)
+![pam_chck.so functions](images/pam_chck_so_functions.png)
 
-pam_chck.so has four functions, three of which are implementations of a pam interface.  [pam_setcred](https://linux.die.net/man/3/pam_setcred), [pam_authenticate](https://linux.die.net/man/3/pam_authenticate), and [pam_acct_mgmt](https://linux.die.net/man/3/pam_acct_mgmt).  We know that the login prompt is seemingly ignoring the root password so pam_authenticate (which controls the login flow) seems like it'll be relevant.
+pam_chck.so has four functions, three of which are implementations of a pam interface.
+[pam_setcred](https://linux.die.net/man/3/pam_setcred),
+[pam_authenticate](https://linux.die.net/man/3/pam_authenticate), and
+[pam_acct_mgmt](https://linux.die.net/man/3/pam_acct_mgmt).  We know that the login prompt is seemingly ignoring the
+root password so pam_authenticate (which controls the login flow) seems like it'll be relevant.
 
-![pam_chck.so authenticate](./pam_chck_so_authenticate.png)
+![pam_chck.so authenticate](images/pam_chck_so_authenticate.png)
 
-This explains the strange behavior we had noticed earlier with the login prompt.  Any account which was not root would fail immediately by querying username again and root would fail with the correct password.  It's worth noting that it doesn't read input for the password at all.  The check_device function determines if we log in successfully or so, so the next place to look is that function.  
-![pam_chck.so check_device](./pam_chck_so_check_device.png)
+This explains the strange behavior we had noticed earlier with the login prompt. Any account which was not root would
+fail immediately by querying username again and root would fail with the correct password. It's worth noting that it
+doesn't read input for the password at all. The check_device function determines if we log in successfully or so, so the
+next place to look is that function.
 
-check_device reads two bytes from `/dev/chck`, converts them into an integer using atoi, and returns it. Looking back at pam_sm_authenticate, if `/dev/chck` returns a 1 then the login will succeed, otherwise it will fail.  
+![pam_chck.so check_device](images/pam_chck_so_check_device.png)
+
+check_device reads two bytes from `/dev/chck`, converts them into an integer using atoi, and returns it. Looking back at
+pam_sm_authenticate, if `/dev/chck` returns a 1 then the login will succeed, otherwise it will fail.  
 
 ## initramfs exploration
-<super>[Addison](https://github.com/VTCAKAVSMoACE), [komputerwiz](https://github.com/komputerwiz) </super>
+[Addison], [komputerwiz]
 
 By this point, we had worked out that it was necessary to view the initramfs in order to access the data present in the
 kernel module (specifically, `chck_handle` and the call to `acpi_evaluate_integer`). So, we extracted the initramfs.
 
 ### Unpacking and peeking
-<super>[Addison](https://github.com/VTCAKAVSMoACE) </super>
+[Addison]
 
 ```bash
 $ cp vm/boot/initramfs-linux.img .
@@ -267,12 +276,12 @@ ASL Output:    ssdt.dsl - 4182 bytes
 ```
 
 Huzzah! Now we can mess around with the .dsl file, the full content of which is available
-[here](kernel/firmware/acpi).
+[here](files/kernel/firmware/acpi).
 
 ### ACPI fun
-<super>[Addison](https://github.com/VTCAKAVSMoACE) </super>
+[Addison]
 
-Upon inspecting the DSL file, we find the method used in [chck.ko](#chck.ko) via `acpi_evaluate_integer`. It's quite
+Upon inspecting the DSL file, we find the method used in [chck.ko](#chckko) via `acpi_evaluate_integer`. It's quite
 long, so I've redacted everything except the most important bit.
 
 ```
@@ -328,20 +337,18 @@ Name (KBDB, Buffer (0x3E){})
 ```
 
 It was at this point that two things happen:
-- [theinen](https://github.com/tcheinen) worked out that, when reading the device, it would only return values after hitting enter.
-- [komputerwiz](https://github.com/komputerwiz) worked out that these are virtual keyboard events values.
+- [theinen] worked out that, when reading the device, it would only return values after hitting enter.
+- [komputerwiz] worked out that these are virtual keyboard events values.
 
 So now, we just need to decode the keyboard events into ASCII.
 
 ## Keyboard decoding
-<super>[Addison](https://github.com/VTCAKAVSMoACE), [theinen](https://github.com/tcheinen), [komputerwiz](https://github.com/komputerwiz), [Arjun](https://github.com/alalith) </super>
+[Addison], [theinen], [komputerwiz], [Arjun]
 
-When pressing—or _releasing_—a key on a keyboard (or pressing a button on
-the mouse), the kernel receives these events in the form of "key codes." The
-[keybd\_event repo][] by [@micmonay][] contains a
-[mapping](https://github.com/micmonay/keybd_event/blob/master/keybd_linux.go)
-that gives more meaningful names to the key codes. Decoding the key codes above
-gives the following sequence of keys:
+When pressing -- or _releasing_ -- a key on a keyboard (or pressing a button on the mouse), the kernel receives these
+events in the form of "key codes." The [keybd\_event repo] by [@micmonay] contains a
+[mapping](https://github.com/micmonay/keybd_event/blob/master/keybd_linux.go) that gives more meaningful names to the
+key codes. Decoding the key codes above gives the following sequence of keys:
 
 ```
 VK_SHIFT
@@ -408,14 +415,18 @@ VK_ENTER
 VK_BOOKMARKS
 ```
 
-Wow, there is a lot of extra "junk" buttons being pressed. We can ignore the
-`MSDOS`, `CALC`, `NEXTSONG`, `EJECTCD`, etc. events. One pattern of note is the
-`SHIFT` event when the shift key is pressed down, and the corresponding `ISO`
-event when it is released. This means that the initial `C`, `T`, and `F` are
-capitalized, and `MINUS` is actually an underscore ("\_"). Putting all of this together yields the flag:
+Wow, there is a lot of extra "junk" buttons being pressed. We can ignore the `MSDOS`, `CALC`, `NEXTSONG`, `EJECTCD`,
+etc. events. One pattern of note is the `SHIFT` event when the shift key is pressed down, and the corresponding `ISO`
+event when it is released. This means that the initial `C`, `T`, and `F` are capitalized, `LEFTBRACE` and `RIGHTBRACE`
+are actually curly braces ("{}"), and `MINUS` is actually an underscore ("\_"). Putting all of this together yields the
+flag:
 
 `CTF{acpi_machine_language}`
 
+[Addison]: https://github.com/VTCAKAVSMoACE
+[theinen]: https://github.com/tcheinen
+[komputerwiz]: https://github.com/komputerwiz
+[Arjun]: https://github.com/alalith
 [chroot]: https://wiki.archlinux.org/index.php/Chroot
 [getty override]: https://wiki.archlinux.org/index.php/Getty#Automatic_login_to_virtual_console
 [systemd]: https://wiki.archlinux.org/index.php/Systemd
