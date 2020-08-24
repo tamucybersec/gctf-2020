@@ -161,7 +161,7 @@ with the root password earlier would not work. Let's see what is inside the PAM 
 ## Ghidra review of kernel and PAM modules
 [Addison], [theinen], [Arjun]
 
-### hello.ko
+### [hello.ko](https://github.com/tamucybersec/gctf-2020/blob/master/reversing/root-power/files/hello.ko)
 [theinen]
 
 ![init function, prints out Hello World to kernel log](images/hello_ko_hello_init.png)
@@ -171,7 +171,7 @@ with the root password earlier would not work. Let's see what is inside the PAM 
 This was a fairly trivial kernel module.  It printed "Hello World" and "Goodbye World" to the kernel log.  To the best
 of my knowledge it had nothing to do with the actual challenge but it was an extra file on the disk so we analyzed it.  
 
-### chck.ko
+### [chck.ko](https://github.com/tamucybersec/gctf-2020/blob/master/reversing/root-power/files/chck.ko)
 [Addison], [theinen], [Arjun]
 
 We run strings on the kernel module, and find that the author is someone working at Google. There is also a mention of
@@ -199,10 +199,8 @@ This function is external and invokes relies on uninitialised data which is like
 
 ![chck_read](images/chck_read.png)
 
-### pam_chck.so
+### [pam_chck.so](https://github.com/tamucybersec/gctf-2020/blob/master/reversing/root-power/files/pam_chck.so)
 [theinen]
-
-[pam_chck.so](files/pam_chck.so)
 
 ![pam_chck.so functions](images/pam_chck_so_functions.png)
 
