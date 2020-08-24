@@ -8,7 +8,7 @@ Root is an incredibly powerful account to access. Especially in this National Gr
 [Addison], [theinen], [komputerwiz], [Arjun]
 
 The attachment provided in the CTF provides us with a "vm.tar.xz". Extracting reveals a disk image (disk.img) and a
-script which launches a QEMU VM using the disk image.
+script which launches a QEMU VM using the disk image (run.sh).
 
 Let's take a look around that disk image.
 
@@ -164,8 +164,8 @@ with the root password earlier would not work. Let's see what is inside the PAM 
 ![init function, prints out Goodbye World to kernel log](images/hello_ko_hello_exit.png)
 ![strings in memory, shows Hello World! and Goodbye World!](images/hello_ko_strings.png)
 
-This was a fairly trivial kernel module.  It printed "Hello World" and "Goodbye World" to the kernel log.  To the best
-of my knowledge it had nothing to do with the actual challenge but it was an extra file on the disk so we analyzed it.  
+This was a fairly trivial kernel module. It printed "Hello World" and "Goodbye World" to the kernel log. To the best of
+my knowledge it had nothing to do with the actual challenge but it was an extra file on the disk so we analyzed it.  
 
 ### [chck.ko](https://github.com/tamucybersec/gctf-2020/blob/master/reversing/root-power/files/chck.ko)
 [Addison], [theinen], [Arjun]
